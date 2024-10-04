@@ -1,0 +1,71 @@
+@access-token =
+@spn_Id=
+@applications_Id=
+
+###
+
+https://graph.microsoft.com/beta/ServicePrincipals/d688aab6-97f1-46b6-999a-2a0b064a9dc3/claimsPolicy?$select=claims
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/beta/ServicePrincipals
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/beta/ServicePrincipals/{{spn_Id}}/claimsPolicy
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/beta/ServicePrincipals/{{spn_Id}}/claimsPolicy?$select=audienceOverride,claims
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/beta/policies/claimsMappingPolicies
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/beta/ServicePrincipals/{{spn_Id}}/claimsPolicy
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/beta/ServicePrincipals/{{spn_Id}}
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/v1.0/applications/
+Authorization: Bearer {{access-token}}
+
+###
+
+https://graph.microsoft.com/v1.0/applications/2d72b04b-f527-48b6-8e4c-336569e90317/
+Authorization: Bearer {{access-token}}
+
+###
+
+GET https://graph.microsoft.com/v1.0/applications/dd0167a3-7e6c-4344-99ce-d50a2e6ddcca
+Authorization: Bearer {{access-token}}
+
+###
+
+GET https://graph.microsoft.com/v1.0/applications/{{applications_Id}}
+Authorization: Bearer {{access-token}}
+
+###
+
+GET https://graph.microsoft.com/v1.0/applications?$select=id,displayName,appId
+Authorization: Bearer {{access-token}}
+
+###
+GET https://graph.microsoft.com/v1.0/applications(appId='e642ef0f-f8f5-4418-b0e7-e3bc57cdce5f')
+Authorization: Bearer {{access-token}}
+
+###
+GET https://microsoftscimwebhostsample20241003172036.azurewebsites.net/scim/Users?filter=userName+eq+%229ee3d4fe-34f2-43cb-9b21-8e2c9c9d63a3%22
+Authorization: Bearer {{access-token}}
