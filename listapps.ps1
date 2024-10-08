@@ -17,7 +17,7 @@
 
 # # Extract the access token
 # $accessToken = $tokenResponse.AccessToken
-$accessToken = "eyJ0eXAiOi"
+$accessToken = "eyJ0eXAiOiJ...."
 
 # Set the headers
 $headers = @{
@@ -25,48 +25,53 @@ $headers = @{
     "Content-Type"  = "application/json"
 }
 
+# if you want to generate the list of apps to scan, set this to true
+$generateListToScan = $false
+
 # Uncomment the bellow lines to get all the apps
-# $url = "https://graph.microsoft.com/beta/servicePrincipals"
-# $nextPageUrl = $url
+$url = "https://graph.microsoft.com/beta/servicePrincipals"
+$nextPageUrl = $url
 
-# # Initialize variables for pagination
-# $allResults = @()
+if ($generateListToScan -eq $true) {
 
-# # Loop to fetch all pages
-# while ($nextPageUrl) {
-#     try {
-#         # Fetch the current page
-#         $response = Invoke-RestMethod -Uri $nextPageUrl -Headers $headers -Method Get
+    # Initialize variables for pagination
+    $allResults = @()
+
+    # Loop to fetch all pages
+    while ($nextPageUrl) {
+        try {
+            # Fetch the current page
+            $response = Invoke-RestMethod -Uri $nextPageUrl -Headers $headers -Method Get
     
-#         foreach ($value in $response.value) {
-#             $allResults += [PSCustomObject]@{
-#                 id            = $value.id
-#                 appId         = $value.appId
-#                 appName       = $value.appDisplayName
-#                 displayName   = $value.displayName
-#                 publisherName = $value.publisherName
-#             }
-#         }
+            foreach ($value in $response.value) {
+                $allResults += [PSCustomObject]@{
+                    id            = $value.id
+                    appId         = $value.appId
+                    displayName   = $value.displayName
+                    publisherName = $value.publisherName
+                }
+            }
 
-#         # Check if there is a next page
-#         if ($response.'@odata.nextLink') {
-#             $nextPageUrl = $response.'@odata.nextLink'
-#         }
-#         else {
-#             $nextPageUrl = $null
-#         }
+            # Check if there is a next page
+            if ($response.'@odata.nextLink') {
+                $nextPageUrl = $response.'@odata.nextLink'
+            }
+            else {
+                $nextPageUrl = $null
+            }
 
-#     }
-#     catch {
-#         Write-Error "Failed to fetch claims policy for URL: $claimsPolicyUrl"
-#         Write-Error $_.Exception.Message
-#         Write-Error $_.Exception.Response.Content
-#         $nextPageUrl = $null
-#     }
-# }
+        }
+        catch {
+            Write-Error "Failed to fetch claims policy for URL: $claimsPolicyUrl"
+            Write-Error $_.Exception.Message
+            Write-Error $_.Exception.Response.Content
+            $nextPageUrl = $null
+        }
+    }
 
-# # Export the array to a CSV file
-# $allResults  | Export-Csv -Path "AppsToList.csv" -NoTypeInformation
+    # Export the array to a CSV file
+    $allResults  | Export-Csv -Path "AppsToList.csv" -NoTypeInformation
+}
 
 # Load the CSV file
 $csvData = Import-Csv -Path "AppsToList.csv"
@@ -78,8 +83,6 @@ $csvData | Format-Table -AutoSize
 $appsTesult = @()
 
 foreach ($app in $csvData) {
-    Write-Output $app.appName
-    # Display the results and fetch claims policies
 
     # $allResults | ForEach-Object {
     if (-not [string]::IsNullOrEmpty($app.id)) {
@@ -179,7 +182,6 @@ foreach ($app in $csvData) {
                 foreach ($mapping in $objMapping.attributeMappings) {
                     foreach ($mappingValue in $mapping.source) {
                         Write-Output "SCIM Source ID $($mappingValue.name)"
-                        $idname = ""
                         if ($null -ne $mappingValue.parameters) {
                             # foreach ($param in $mappingValue.parameters) {
                             #     $idname += "$($param.value.name),"
@@ -218,12 +220,12 @@ foreach ($app in $csvData) {
             Write-Error $_.Exception.Message
             Write-Error $_.Exception.Response.Content
         }
+
+        # Export the array to a CSV file
+        $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
                 
     }
     else {
         Write-Output "Skipping entry with empty ID"
     }
 }
-
-# Export the array to a CSV file
-$appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation
