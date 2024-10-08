@@ -8,7 +8,7 @@ You can use the code itself to get one access token, and I presume the App ID fo
 
 14d82eec-204b-4c2f-b7e8-296a70dab67e
 
-The easiest way to get started if to enter a list of Apps you are looking for on the file AppsToList.csv following the example:
+The easiest way to get started is to enter a list of Apps you are looking for on the file AppsToList.csv following the example:
 
 ```csv
 "ObjectID","AppID","AppName","nameIdFormat","name","ID","Source"
