@@ -1,49 +1,96 @@
-# Define the URL
-$url = "https://graph.microsoft.com/beta/servicePrincipals/7acdd580-a94c-4741-a265-30d5aa039203"
-# $url = "https://graph.microsoft.com/beta/servicePrincipals"
-# $url = "https://graph.microsoft.com/v1.0/applications/2d72b04b-f527-48b6-8e4c-336569e90317"
 
+# Some Sample URLs
+# $url = "https://graph.microsoft.com/beta/servicePrincipals/40584da2-....."
+# $url = "https://graph.microsoft.com/beta/servicePrincipals/7acdd580-....."
+# $url = "https://graph.microsoft.com/v1.0/applications/2d72b04b-....."
 
-# Define the access token (replace with your actual token)
-$accessToken = ""
+#Uncomment the bellow lines to get an access token, or get one from Graph Explorer
+# # Replace with your Azure AD application's client ID, or use a well-known client ID for public clients
+# Install-Module -Name MSAL.PS -Scope CurrentUser
+# $clientId = '14d82eec-204b-4c2f-b7e8-296a70dab67e' # Microsoft Graph Command Line Tools
+
+# # Define the scopes you need
+# $scopes = "Directory.Read.All","Policy.Read.All","Policy.ReadWrite.ApplicationConfiguration","Subscription.Read.All","User.Read", "User.Read.All", "Application.Read.All"
+
+# # Acquire the token interactively
+# $tokenResponse = Get-MsalToken -ClientId $clientId -Scopes $scopes -Interactive -UseEmbeddedWebView
+
+# # Extract the access token
+# $accessToken = $tokenResponse.AccessToken
+$accessToken = "eyJ0....."
+
 # Set the headers
 $headers = @{
     "Authorization" = "Bearer $accessToken"
     "Content-Type"  = "application/json"
 }
 
-# Initialize variables for pagination
-$allResults = @()
-$nextPageUrl = $url
+# Uncomment the bellow lines to get all the apps
+# $url = "https://graph.microsoft.com/beta/servicePrincipals"
+# $nextPageUrl = $url
 
-# Loop to fetch all pages
-while ($nextPageUrl) {
-    # Fetch the current page
-    $response = Invoke-RestMethod -Uri $nextPageUrl -Headers $headers -Method Get
+# # Initialize variables for pagination
+# $allResults = @()
+
+# # Loop to fetch all pages
+# while ($nextPageUrl) {
+#     try {
+#         # Fetch the current page
+#         $response = Invoke-RestMethod -Uri $nextPageUrl -Headers $headers -Method Get
     
-    # Add the current page results to the collection
-    $allResults += $response
-    
-    # Check if there is a next page
-    if ($response.'@odata.nextLink') {
-        $nextPageUrl = $response.'@odata.nextLink'
-    }
-    else {
-        $nextPageUrl = $null
-    }
-}
+#         foreach ($value in $response.value) {
+#             $allResults += [PSCustomObject]@{
+#                 id            = $value.id
+#                 appId         = $value.appId
+#                 appName       = $value.appDisplayName
+#                 displayName   = $value.displayName
+#                 publisherName = $value.publisherName
+#             }
+#         }
 
-# Display the results and fetch claims policies
-$allResults | ForEach-Object {
-    if (-not [string]::IsNullOrEmpty($_.id)) {
-        $SPNId = $_.id
-        $appId = $_.appId
-        $appDisplayName = $_.displayName
+#         # Check if there is a next page
+#         if ($response.'@odata.nextLink') {
+#             $nextPageUrl = $response.'@odata.nextLink'
+#         }
+#         else {
+#             $nextPageUrl = $null
+#         }
 
-        Write-Output $_.displayName, $_.id
+#     }
+#     catch {
+#         Write-Error "Failed to fetch claims policy for URL: $claimsPolicyUrl"
+#         Write-Error $_.Exception.Message
+#         Write-Error $_.Exception.Response.Content
+#         $nextPageUrl = $null
+#     }
+# }
+
+# # Export the array to a CSV file
+# $allResults  | Export-Csv -Path "AppsToList.csv" -NoTypeInformation
+
+# Load the CSV file
+$csvData = Import-Csv -Path "AppsToList.csv"
+
+# Display the contents of the CSV file
+$csvData | Format-Table -AutoSize
+
+# Initialize an array to hold the custom objects
+$appsTesult = @()
+
+foreach ($app in $csvData) {
+    Write-Output $app.appName
+    # Display the results and fetch claims policies
+
+    # $allResults | ForEach-Object {
+    if (-not [string]::IsNullOrEmpty($app.id)) {
+        $SPNId = $app.id
+        $appId = $app.appId
+        $appDisplayName = $app.displayName
+
+        Write-Output $app.displayName, $app.id
 
         # Correct URL for fetching claims policy
-        $claimsPolicyUrl = "https://graph.microsoft.com/beta/servicePrincipals/$($_.id)/claimsPolicy"
+        $claimsPolicyUrl = "https://graph.microsoft.com/beta/servicePrincipals/$($app.id)/claimsPolicy"
         Write-Output "Searching for claims policy at $claimsPolicyUrl"
 
         try {
@@ -53,11 +100,21 @@ $allResults | ForEach-Object {
                 foreach ($config in $claim.claims) {
                     foreach ($value in $config.configurations) {
                         Write-Output "Object ID $SPNId, AppName $appDisplayName,  nameIdFormat $($config.nameIdFormat), name $($config.name) , ID: $($value.attribute.id), Source: $($value.attribute.source)"
+                        $appsTesult += [PSCustomObject]@{
+                            ObjectID     = $SPNId
+                            AppID        = $appId
+                            AppName      = $appDisplayName
+                            nameIdFormat = $($config.nameIdFormat)
+                            name         = $($config.name)
+                            ID           = $($value.attribute.id)
+                            Source       = $($value.attribute.source)
+                        }
                     }
                 }
             }
         }
         catch {
+            Write-Error "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
             Write-Error "Failed to fetch claims policy for URL: $claimsPolicyUrl"
             Write-Error $_.Exception.Message
             Write-Error $_.Exception.Response.Content
@@ -73,6 +130,16 @@ $allResults | ForEach-Object {
                 foreach ($tokeninfo in $claim.accessToken) {
                     foreach ($value in $tokeninfo) {
                         Write-Output "Object ID $($value.name)"
+
+                        $appsTesult += [PSCustomObject]@{
+                            ObjectID     = $SPNId
+                            AppID        = $appId
+                            AppName      = $appDisplayName
+                            nameIdFormat = ""
+                            name         = $($value.name)
+                            ID           = $($value.name)
+                            Source       = "OIDC"
+                        }
                     }
                 }
                 foreach ($tokeninfo in $claim.idToken) {
@@ -88,12 +155,85 @@ $allResults | ForEach-Object {
             }
         }
         catch {
-            Write-Error "Failed to fetch claims policy for URL: $appIDInfo"
+            Write-Error "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
+            Write-Error "Failed to fetch claims OIDC policy for URL: $appIDInfo"
             Write-Error $_.Exception.Message
             Write-Error $_.Exception.Response.Content
-        }        
+        }
+
+
+        try {
+            # Do the same for SCIM
+            $scimJobsInfo = "https://graph.microsoft.com/v1.0/servicePrincipals/$SPNId/synchronization/jobs/"
+            
+            # Make the request for claims policy
+            $responseSCIMJobsInfo = Invoke-RestMethod -Uri $scimJobsInfo -Headers $headers -Method Get
+            
+            $jobSchemaID = ($responseSCIMJobsInfo.value[0]).id
+            
+            $scimJobSchemaInfo = "https://graph.microsoft.com/v1.0/servicePrincipals/$SPNId/synchronization/jobs/$jobSchemaID/schema/"
+
+            $responseSCIMJobSchemaInfo = Invoke-RestMethod -Uri $scimJobSchemaInfo -Headers $headers -Method Get
+            
+            foreach ($objMapping in ($responseSCIMJobSchemaInfo.synchronizationRules[0]).objectMappings) {
+                foreach ($mapping in $objMapping.attributeMappings) {
+                    foreach ($mappingValue in $mapping.source) {
+                        Write-Output "SCIM Source ID $($mappingValue.name)"
+                        $idname = ""
+                        if ($null -ne $mappingValue.parameters) {
+                            foreach ($param in $mappingValue.parameters) {
+                                $idname += "$($param.value.name),"
+                            }
+                            Write-Output "SCIM Source Complex ID $($idname)"
+
+                            $appsTesult += [PSCustomObject]@{
+                                ObjectID     = $SPNId
+                                AppID        = $appId
+                                AppName      = $appDisplayName
+                                nameIdFormat = ""
+                                name         = $($mapping.targetAttributeName)
+                                ID           = $idname
+                                Source       = "SCIM"
+                            }
+                        }
+                        else {
+                            $appsTesult += [PSCustomObject]@{
+                                ObjectID     = $SPNId
+                                AppID        = $appId
+                                AppName      = $appDisplayName
+                                nameIdFormat = ""
+                                name         = $($mapping.targetAttributeName)
+                                ID           = $($mappingValue.name)
+                                Source       = "SCIM"
+                            }
+                        }
+
+                    }
+                }
+                foreach ($tokeninfo in $claim.idToken) {
+                    foreach ($value in $tokeninfo) {
+                        Write-Output "Object ID $($value.name)"
+                    }
+                }
+                foreach ($tokeninfo in $claim.saml2Token) {
+                    foreach ($value in $tokeninfo) {
+                        Write-Output "Object ID $($value.name)"
+                    }
+                }                                
+            }
+        }
+        catch {
+            Write-Error "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
+            Write-Error "Failed to fetch SCIM claims policy for URL: $appIDInfo"
+            Write-Error $_.Exception.Message
+            Write-Error $_.Exception.Response.Content
+        }
+                
     }
     else {
         Write-Output "Skipping entry with empty ID"
     }
 }
+
+# Export the array to a CSV file
+$appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation
