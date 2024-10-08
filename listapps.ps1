@@ -17,7 +17,7 @@
 
 # # Extract the access token
 # $accessToken = $tokenResponse.AccessToken
-$accessToken = "eyJ0....."
+$accessToken = "eyJ0eXAiOi"
 
 # Set the headers
 $headers = @{
@@ -104,9 +104,9 @@ foreach ($app in $csvData) {
                             ObjectID     = $SPNId
                             AppID        = $appId
                             AppName      = $appDisplayName
-                            nameIdFormat = $($config.nameIdFormat)
-                            name         = $($config.name)
-                            ID           = $($value.attribute.id)
+                            NameIdFormat = $($config.nameIdFormat)
+                            Name         = $($config.name)
+                            AttributeID  = $($value.attribute.id)
                             Source       = $($value.attribute.source)
                         }
                     }
@@ -135,9 +135,9 @@ foreach ($app in $csvData) {
                             ObjectID     = $SPNId
                             AppID        = $appId
                             AppName      = $appDisplayName
-                            nameIdFormat = ""
-                            name         = $($value.name)
-                            ID           = $($value.name)
+                            NameIdFormat = ""
+                            Name         = $($value.name)
+                            AttributeID  = $($value.name)
                             Source       = "OIDC"
                         }
                     }
@@ -181,18 +181,18 @@ foreach ($app in $csvData) {
                         Write-Output "SCIM Source ID $($mappingValue.name)"
                         $idname = ""
                         if ($null -ne $mappingValue.parameters) {
-                            foreach ($param in $mappingValue.parameters) {
-                                $idname += "$($param.value.name),"
-                            }
-                            Write-Output "SCIM Source Complex ID $($idname)"
+                            # foreach ($param in $mappingValue.parameters) {
+                            #     $idname += "$($param.value.name),"
+                            # }
+                            # Write-Output "SCIM Source Complex ID $($idname)"
 
                             $appsTesult += [PSCustomObject]@{
                                 ObjectID     = $SPNId
                                 AppID        = $appId
                                 AppName      = $appDisplayName
-                                nameIdFormat = ""
-                                name         = $($mapping.targetAttributeName)
-                                ID           = $idname
+                                NameIdFormat = ""
+                                Name         = $($mapping.targetAttributeName)
+                                AttributeID  = $($mapping.source[0]).expression   
                                 Source       = "SCIM"
                             }
                         }
@@ -201,25 +201,15 @@ foreach ($app in $csvData) {
                                 ObjectID     = $SPNId
                                 AppID        = $appId
                                 AppName      = $appDisplayName
-                                nameIdFormat = ""
-                                name         = $($mapping.targetAttributeName)
-                                ID           = $($mappingValue.name)
+                                NameIdFormat = ""
+                                Name         = $($mapping.targetAttributeName)
+                                AttributeID  = $($mapping.source[0]).expression
                                 Source       = "SCIM"
                             }
                         }
 
                     }
-                }
-                foreach ($tokeninfo in $claim.idToken) {
-                    foreach ($value in $tokeninfo) {
-                        Write-Output "Object ID $($value.name)"
-                    }
-                }
-                foreach ($tokeninfo in $claim.saml2Token) {
-                    foreach ($value in $tokeninfo) {
-                        Write-Output "Object ID $($value.name)"
-                    }
-                }                                
+                }                       
             }
         }
         catch {
