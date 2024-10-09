@@ -17,7 +17,7 @@
 
 # # Extract the access token
 # $accessToken = $tokenResponse.AccessToken
-$accessToken = "eyJ0eXAiOiJ...."
+$accessToken = "eyJ0eXA....."
 
 # Set the headers
 $headers = @{
@@ -95,6 +95,9 @@ foreach ($app in $csvData) {
         # Correct URL for fetching claims policy
         $claimsPolicyUrl = "https://graph.microsoft.com/beta/servicePrincipals/$($app.id)/claimsPolicy"
         Write-Output "Searching for claims policy at $claimsPolicyUrl"
+
+        # Initialize an array to hold the custom objects
+        $appsTesult = @()
 
         try {
             # Make the request for claims policy
