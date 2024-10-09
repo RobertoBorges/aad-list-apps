@@ -1,23 +1,28 @@
 
-# Some Sample URLs
-# $url = "https://graph.microsoft.com/beta/servicePrincipals/40584da2-....."
-# $url = "https://graph.microsoft.com/beta/servicePrincipals/7acdd580-....."
-# $url = "https://graph.microsoft.com/v1.0/applications/2d72b04b-....."
+$getFreshToken = $false
 
-#Uncomment the bellow lines to get an access token, or get one from Graph Explorer
-# # Replace with your Azure AD application's client ID, or use a well-known client ID for public clients
-# Install-Module -Name MSAL.PS -Scope CurrentUser
-# $clientId = '14d82eec-204b-4c2f-b7e8-296a70dab67e' # Microsoft Graph Command Line Tools
+if ($getFreshToken -eq $true) {
+    # # Replace with your Azure AD application's client ID, or use a well-known client ID for public clients
+    Install-Module -Name MSAL.PS -Scope CurrentUser
+    $clientId = '14d82eec-204b-4c2f-b7e8-296a70dab67e' # Microsoft Graph Command Line Tools
 
-# # Define the scopes you need
-# $scopes = "Directory.Read.All","Policy.Read.All","Policy.ReadWrite.ApplicationConfiguration","Subscription.Read.All","User.Read", "User.Read.All", "Application.Read.All"
+    # Define the scopes you need
+    $scopes = "Directory.Read.All", "Policy.Read.All", "Policy.ReadWrite.ApplicationConfiguration", "Subscription.Read.All", "User.Read", "User.Read.All", "Application.Read.All"
 
-# # Acquire the token interactively
-# $tokenResponse = Get-MsalToken -ClientId $clientId -Scopes $scopes -Interactive -UseEmbeddedWebView
+    # Acquire the token interactively
+    $tokenResponse = Get-MsalToken -ClientId $clientId -Scopes $scopes -Interactive -UseEmbeddedWebView
 
-# # Extract the access token
-# $accessToken = $tokenResponse.AccessToken
-$accessToken = "eyJ0eXA....."
+    # Extract the access token
+    $accessToken = $tokenResponse.AccessToken
+}
+else {
+    $accessToken = "eyJ0eXAiOiJK..."
+}
+
+#delete the apps.csv file if it exists
+if (Test-Path "apps.csv") {
+    Remove-Item "apps.csv"
+}
 
 # Set the headers
 $headers = @{
@@ -27,11 +32,8 @@ $headers = @{
 
 # if you want to generate the list of apps to scan, set this to true
 $generateListToScan = $false
-
-# Uncomment the bellow lines to get all the apps
 $url = "https://graph.microsoft.com/beta/servicePrincipals"
 $nextPageUrl = $url
-
 if ($generateListToScan -eq $true) {
 
     # Initialize variables for pagination
@@ -62,9 +64,9 @@ if ($generateListToScan -eq $true) {
 
         }
         catch {
-            Write-Error "Failed to fetch claims policy for URL: $claimsPolicyUrl"
-            Write-Error $_.Exception.Message
-            Write-Error $_.Exception.Response.Content
+            Write-Warning "Failed to fetch claims policy for URL: $claimsPolicyUrl"
+            Write-Warning $_.Exception.Message
+            Write-Warning $_.Exception.Response.Content
             $nextPageUrl = $null
         }
     }
@@ -113,17 +115,18 @@ foreach ($app in $csvData) {
                             NameIdFormat = $($config.nameIdFormat)
                             Name         = $($config.name)
                             AttributeID  = $($value.attribute.id)
-                            Source       = $($value.attribute.source)
+                            Source       = "SAML"
+                            InnerSource  = $($value.attribute.source)
                         }
                     }
                 }
             }
         }
         catch {
-            Write-Error "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
-            Write-Error "Failed to fetch claims policy for URL: $claimsPolicyUrl"
-            Write-Error $_.Exception.Message
-            Write-Error $_.Exception.Response.Content
+            Write-Warning "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
+            Write-Warning "Failed to fetch claims policy for URL: $claimsPolicyUrl"
+            Write-Warning $_.Exception.Message
+            Write-Warning $_.Exception.Response.Content
         }
 
         # Do the same for OIDC
@@ -145,6 +148,7 @@ foreach ($app in $csvData) {
                             Name         = $($value.name)
                             AttributeID  = $($value.name)
                             Source       = "OIDC"
+                            InnerSource  = $($value.source)
                         }
                     }
                 }
@@ -161,10 +165,10 @@ foreach ($app in $csvData) {
             }
         }
         catch {
-            Write-Error "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
-            Write-Error "Failed to fetch claims OIDC policy for URL: $appIDInfo"
-            Write-Error $_.Exception.Message
-            Write-Error $_.Exception.Response.Content
+            Write-Warning "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
+            Write-Warning "Failed to fetch claims OIDC policy for URL: $appIDInfo"
+            Write-Warning $_.Exception.Message
+            Write-Warning $_.Exception.Response.Content
         }
 
 
@@ -185,32 +189,16 @@ foreach ($app in $csvData) {
                 foreach ($mapping in $objMapping.attributeMappings) {
                     foreach ($mappingValue in $mapping.source) {
                         Write-Output "SCIM Source ID $($mappingValue.name)"
-                        if ($null -ne $mappingValue.parameters) {
-                            # foreach ($param in $mappingValue.parameters) {
-                            #     $idname += "$($param.value.name),"
-                            # }
-                            # Write-Output "SCIM Source Complex ID $($idname)"
 
-                            $appsTesult += [PSCustomObject]@{
-                                ObjectID     = $SPNId
-                                AppID        = $appId
-                                AppName      = $appDisplayName
-                                NameIdFormat = ""
-                                Name         = $($mapping.targetAttributeName)
-                                AttributeID  = $($mapping.source[0]).expression   
-                                Source       = "SCIM"
-                            }
-                        }
-                        else {
-                            $appsTesult += [PSCustomObject]@{
-                                ObjectID     = $SPNId
-                                AppID        = $appId
-                                AppName      = $appDisplayName
-                                NameIdFormat = ""
-                                Name         = $($mapping.targetAttributeName)
-                                AttributeID  = $($mapping.source[0]).expression
-                                Source       = "SCIM"
-                            }
+                        $appsTesult += [PSCustomObject]@{
+                            ObjectID     = $SPNId
+                            AppID        = $appId
+                            AppName      = $appDisplayName
+                            NameIdFormat = ""
+                            Name         = $($mapping.targetAttributeName)
+                            AttributeID  = $($mapping.source[0]).expression   
+                            Source       = "SCIM"
+                            InnerSource  = $objMapping.sourceObjectName
                         }
 
                     }
@@ -218,10 +206,10 @@ foreach ($app in $csvData) {
             }
         }
         catch {
-            Write-Error "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
-            Write-Error "Failed to fetch SCIM claims policy for URL: $appIDInfo"
-            Write-Error $_.Exception.Message
-            Write-Error $_.Exception.Response.Content
+            Write-Warning "appDisplayName: $appDisplayName, appID: $appId, SPNId: $SPNId"
+            Write-Warning "Failed to fetch SCIM claims policy for URL: $appIDInfo"
+            Write-Warning $_.Exception.Message
+            Write-Warning $_.Exception.Response.Content
         }
 
         # Export the array to a CSV file
