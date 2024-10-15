@@ -1,5 +1,5 @@
 # Set to true if you want to acquire a fresh token
-$getFreshToken = $false
+$getFreshToken = $true
 
 # Set to true if you want to generate the list of apps to scan
 $generateListToScan = $false
@@ -18,7 +18,7 @@ if ($getFreshToken -eq $true) {
     $accessToken = Get-FreshToken
 }
 else {
-    $accessToken = "eyJ0eXAiOiJKV1Q....."
+    $accessToken = "eyJ0eXAiOiJKV1Qi....."
 }
 
 # Delete the apps.csv file if it exists
@@ -91,18 +91,58 @@ function Get-ClaimsPolicy {
         foreach ($claim in $responseClaims) {
             foreach ($config in $claim.claims) {
                 foreach ($value in $config.configurations) {
-                    Write-Output "Object ID $SPNId, AppName $appDisplayName, nameIdFormat $($config.nameIdFormat), name $($config.name), ID: $($value.attribute.id), Source: $($value.attribute.source)"
-                    $appsTesult = [PSCustomObject]@{
-                        ObjectID     = $SPNId
-                        AppID        = $appId
-                        AppName      = $appDisplayName
-                        NameIdFormat = $config.nameIdFormat
-                        Name         = $config.name
-                        AttributeID  = $value.attribute.id
-                        Source       = "SAML"
-                        InnerSource  = $value.attribute.source
+                    if ($null -ne $config.nameIdFormat) {
+                        $nameIdFormat = $config.nameIdFormat
                     }
-                    $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
+                    else {
+                        $nameIdFormat = $config.name
+                    }
+                    if ($null -ne $value.attribute.id) {
+                        Write-Output "Object ID $SPNId, AppName $appDisplayName, nameIdFormat $($config.nameIdFormat), name $($config.name), ID: $($value.attribute.id), Source: $($value.attribute.source)"
+                        $appsTesult = [PSCustomObject]@{
+                            ObjectID     = $SPNId
+                            AppID        = $appId
+                            AppName      = $appDisplayName
+                            NameIdFormat = $nameIdFormat
+                            Name         = $config.name
+                            AttributeID  = $value.attribute.id
+                            Source       = "SAML"
+                            InnerSource  = $value.attribute.source
+                        }
+                        $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
+                    }
+                    if ($null -ne $value.transformations) {
+                        foreach ($transformation in $value.transformations) {
+                            if ($null -ne $transformation.input) {
+                                Write-Output "Object ID $SPNId, AppName $appDisplayName, nameIdFormat $($config.nameIdFormat), name $($config.name), ID: $($transformation.attribute.id), Source: $($transformation.attribute.source)"
+                                $appsTesult = [PSCustomObject]@{
+                                    ObjectID     = $SPNId
+                                    AppID        = $appId
+                                    AppName      = $appDisplayName
+                                    NameIdFormat = $nameIdFormat
+                                    Name         = $config.name
+                                    AttributeID  = $transformation.input.attribute.id
+                                    Source       = "SAML"
+                                    InnerSource  = $transformation.input.attribute.source
+                                }
+                                $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
+                            }
+                            if ($null -ne $transformation.output) {
+                                Write-Output "Object ID $SPNId, AppName $appDisplayName, nameIdFormat $($config.nameIdFormat), name $($config.name), ID: $($transformation.attribute.id), Source: $($transformation.attribute.source)"
+                                $appsTesult = [PSCustomObject]@{
+                                    ObjectID     = $SPNId
+                                    AppID        = $appId
+                                    AppName      = $appDisplayName
+                                    NameIdFormat = $nameIdFormat
+                                    Name         = $config.name
+                                    AttributeID  = $transformation.output.attribute.id
+                                    Source       = "SAML"
+                                    InnerSource  = $transformation.output.attribute.source
+                                }
+                                $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
+                            }
+                        }
+                    }
                 }
             }
         }
