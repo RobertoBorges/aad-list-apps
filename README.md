@@ -10,6 +10,10 @@ This is very usefull for impact analysis, when you need to know what claims are 
 
 This script will includes claims from Access Token, SAML, OpenID Connect and SCIM
 
+This app can be used in general to assess the claims of any app, as it will show the claims that are being sent to the app.
+
+You can use this later to follow how your applications are consuming the claims on Entra ID.
+
 ## Prerequisites
 
 Global Administrator or Application Administrator role in Azure AD
@@ -36,14 +40,16 @@ or you can use the following variables to set the get of apps and the access tok
 
 ```powershell
 # Set to true if you want to acquire a fresh token
-$getFreshToken = $false
+$getFreshToken = $true
 
 # Set to true if you want to generate the list of apps to scan
-$generateListToScan = $false
+$generateListToScan = $true
 ```
 
-This app can be used in general to assess the claims of any app, but it is particularly useful for SCIM apps, as it will show the claims that are being sent to the app.
+Then you can run the script:
 
-You can use this later to follow how your applications are consuming the claims on Entra ID.
+```powershell
+.\listapps.ps1
+```
 
 Any feedback and pull requests are welcome.
