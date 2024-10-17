@@ -174,7 +174,39 @@ function Get-OIDCPolicy {
                         AppName      = $appDisplayName
                         NameIdFormat = ""
                         Name         = $value.name
-                        AttributeID  = $value.name
+                        AttributeID  = "Access.$($value.name)"
+                        Source       = "OIDC"
+                        InnerSource  = $value.source
+                    }
+                    $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
+                }
+            }
+            foreach ($tokeninfo in $claim.idToken) {
+                foreach ($value in $tokeninfo) {
+                    Write-Output "Object ID $($value.name)"
+                    $appsTesult = [PSCustomObject]@{
+                        ObjectID     = $SPNId
+                        AppID        = $appId
+                        AppName      = $appDisplayName
+                        NameIdFormat = ""
+                        Name         = $value.name
+                        AttributeID  = "ID.$($value.name)"
+                        Source       = "OIDC"
+                        InnerSource  = $value.source
+                    }
+                    $appsTesult | Export-Csv -Path "apps.csv" -NoTypeInformation -Append
+                }
+            }
+            foreach ($tokeninfo in $claim.saml2Token) {
+                foreach ($value in $tokeninfo) {
+                    Write-Output "Object ID $($value.name)"
+                    $appsTesult = [PSCustomObject]@{
+                        ObjectID     = $SPNId
+                        AppID        = $appId
+                        AppName      = $appDisplayName
+                        NameIdFormat = ""
+                        Name         = $value.name
+                        AttributeID  = "SAML.$($value.name)"
                         Source       = "OIDC"
                         InnerSource  = $value.source
                     }
