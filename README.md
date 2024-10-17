@@ -49,7 +49,7 @@ $generateListToScan = $true
 Then you can run the script:
 
 ```powershell
-.\listapps.ps1
+.\Get-ClaimsFromEntraID.ps1
 ```
 
 Any feedback and pull requests are welcome.
